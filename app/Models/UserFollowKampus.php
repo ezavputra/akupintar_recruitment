@@ -64,6 +64,6 @@ class UserFollowKampus extends Model
 
     public function user()
     {
-        return $this->belongsTo(Users::class, 'user_id');
+        return $this->belongsTo(Users::class, 'user_id')->with('user_detail');
     }
 }

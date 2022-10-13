@@ -65,12 +65,12 @@ class CariKampusController extends Controller
         $req = $request->all();
 
         $jurusan = JurusanKampus::with([
-                'jurusan' => function ($query) {
-                    $query->select('id', 'name');
-                }, 'kampus' => function ($query2) {
-                    $query2->select('id', 'name');
-                }
-            ])
+            'jurusan' => function ($query) {
+                $query->select('id', 'name');
+            }, 'kampus' => function ($query2) {
+                $query2->select('id', 'name');
+            }
+        ])
             // ->select('id')
             ->where('kampus_id', $req['kampus_id'])
             ->get();
@@ -87,12 +87,12 @@ class CariKampusController extends Controller
 
         $kampus = Kampus::where('name', $req['kampus_name'])->first();
         $jurusan = JurusanKampus::with([
-                'jurusan' => function ($query) {
-                    $query->select('id', 'name');
-                }, 'kampus' => function ($query2) {
-                    $query2->select('id', 'name');
-                }
-            ])
+            'jurusan' => function ($query) {
+                $query->select('id', 'name');
+            }, 'kampus' => function ($query2) {
+                $query2->select('id', 'name');
+            }
+        ])
             // ->select('id')
             ->where('kampus_id', $kampus->id)
             ->get();
@@ -108,13 +108,13 @@ class CariKampusController extends Controller
         $req = $request->all();
 
         $followingkampus = UserFollowKampus::with([
-                'user' => function ($query) {
-                    $query->select('id', 'full_name');
-                }, 'kampus' => function ($query2) {
-                    $query2->select('id', 'name');
-                }
-            ])
-            ->where('user_id', $req["user_id"])
+            'user' => function ($query) {
+                $query->select('id');
+            }, 'kampus' => function ($query2) {
+                $query2->select('id', 'name');
+            }
+        ])
+            ->where('user_id', auth('api')->id())
             ->get();
 
         return response()->json([
@@ -127,10 +127,21 @@ class CariKampusController extends Controller
     {
         $req = $request->all();
 
-        UserFollowKampus::create([
-            'kampus_id' => $req['kampus_id'],
-            'user_id' => $req['user_id'],
-        ]);
+        $follow = UserFollowKampus::where('kampus_id', $req['kampus_id'])
+            ->where('user_id', auth('api')->id())
+            ->count();
+
+        if ($follow > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kampus sudah kamu follow',
+            ], 422);
+        } else {
+            UserFollowKampus::create([
+                'kampus_id' => $req['kampus_id'],
+                'user_id' => auth('api')->id(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -142,9 +153,20 @@ class CariKampusController extends Controller
     {
         $req = $request->all();
 
-        UserFollowKampus::where('kampus_id', $req['kampus_id'])
-            ->where('user_id', $req['user_id'])
-            ->delete();
+        $follow = UserFollowKampus::where('kampus_id', $req['kampus_id'])
+            ->where('user_id', auth('api')->id())
+            ->count();
+
+        if ($follow > 0) {
+            UserFollowKampus::where('kampus_id', $req['kampus_id'])
+                ->where('user_id', auth('api')->id())
+                ->delete();
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kampus sudah tidak kamu follow',
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
